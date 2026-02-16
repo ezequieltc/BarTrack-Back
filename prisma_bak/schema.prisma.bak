@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  role      String   @default("WAITER") // ADMIN, WAITER
+  password  String   // Simple password for now
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       Float
+  category    String
+  isActive    Boolean  @default(true)
+  orderItems  OrderItem[]
+}
+
+model Table {
+  id              Int            @id @default(autoincrement())
+  number          Int            @unique
+  status          String         @default("FREE") // FREE, OCCUPIED
+  currentSessionId Int?          @unique
+  currentSession  TableSession?  @relation(fields: [currentSessionId], references: [id])
+  sessions        TableSession[] @relation("TableHistory")
+}
+
+model TableSession {
+  id        Int       @id @default(autoincrement())
+  tableId   Int
+  startTime DateTime  @default(now())
+  endTime   DateTime?
+  totalAmount Float   @default(0)
+  
+  // Relations
+  tableActive Table?
+  tableHistory Table  @relation("TableHistory", fields: [tableId], references: [id])
+  orders    Order[]
+}
+
+model Order {
+  id        Int      @id @default(autoincrement())
+  sessionId Int
+  createdAt DateTime @default(now())
+  
+  // Relations
+  session   TableSession @relation(fields: [sessionId], references: [id])
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  priceAtOrder Float
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
